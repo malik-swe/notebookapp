@@ -1,5 +1,7 @@
 package com.example.notebookapp.controller;
 
+import com.example.notebookapp.dto.CreateUserRequest;
+import com.example.notebookapp.dto.LoginRequest;
 import com.example.notebookapp.model.User;
 import com.example.notebookapp.service.UserService;
 import org.springframework.http.HttpStatus;
@@ -16,24 +18,70 @@ public class UserController {
         this.userService = userService;
     }
 
-    // Register a new user
+    // =========================
+    // JSON REGISTRATION
+    // =========================
     @PostMapping("/register")
-    public ResponseEntity<User> register(
-            @RequestParam String username,
-            @RequestParam String email,
-            @RequestParam String password
+    public ResponseEntity<?> registerJson(
+            @RequestHeader("Content-Type") String contentType,
+            @RequestBody CreateUserRequest request
     ) {
-        User createdUser = userService.createUser(username, email, password);
-        return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
+
+        if (!contentType.equalsIgnoreCase("application/json")) {
+            return ResponseEntity
+                    .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                    .body("Only application/json is supported");
+        }
+
+        User user = userService.createUser(
+                request.getUsername(),
+                request.getEmail(),
+                request.getPassword()
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(user);
     }
 
-    // Login / authenticate
-    @PostMapping("/login")
-    public ResponseEntity<User> login(
-            @RequestParam String email,
-            @RequestParam String password
+    // =========================
+    // FORM REGISTRATION
+    // =========================
+    @PostMapping(
+            value = "/register-form",
+            consumes = "application/x-www-form-urlencoded"
+    )
+    public ResponseEntity<User> registerForm(
+            @ModelAttribute CreateUserRequest request
     ) {
-        User user = userService.authenticate(email, password);
+
+        User user = userService.createUser(
+                request.getUsername(),
+                request.getEmail(),
+                request.getPassword()
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(user);
+    }
+
+    // =========================
+    // JSON LOGIN
+    // =========================
+    @PostMapping("/login")
+    public ResponseEntity<?> login(
+            @RequestHeader("Content-Type") String contentType,
+            @RequestBody LoginRequest request
+    ) {
+
+        if (!contentType.equalsIgnoreCase("application/json")) {
+            return ResponseEntity
+                    .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                    .body("Only application/json is supported");
+        }
+
+        User user = userService.authenticate(
+                request.getEmail(),
+                request.getPassword()
+        );
+
         return ResponseEntity.ok(user);
     }
 }
