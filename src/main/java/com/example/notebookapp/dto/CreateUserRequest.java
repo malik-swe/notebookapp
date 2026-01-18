@@ -1,13 +1,25 @@
 package com.example.notebookapp.dto;
 
+import com.example.notebookapp.validation.ValidUsername;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
 public class CreateUserRequest {
 
+    @NotNull
+    @Size(min = 3, max = 50)
+    @ValidUsername
     private String username;
-    private String email;
-    private String password;
 
-    public CreateUserRequest() {
-    }
+    @NotNull
+    @Email
+    @Size(max = 255)
+    private String email;
+
+    @NotNull
+    @Size(min = 8, max = 255)
+    private String password;
 
     public String getUsername() {
         return username;

@@ -7,6 +7,7 @@ import com.example.notebookapp.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/users")
@@ -24,7 +25,7 @@ public class UserController {
     @PostMapping("/register")
     public ResponseEntity<?> registerJson(
             @RequestHeader("Content-Type") String contentType,
-            @RequestBody CreateUserRequest request
+            @Valid @RequestBody CreateUserRequest request
     ) {
 
         if (!contentType.equalsIgnoreCase("application/json")) {
@@ -50,7 +51,7 @@ public class UserController {
             consumes = "application/x-www-form-urlencoded"
     )
     public ResponseEntity<User> registerForm(
-            @ModelAttribute CreateUserRequest request
+            @Valid @ModelAttribute CreateUserRequest request
     ) {
 
         User user = userService.createUser(
