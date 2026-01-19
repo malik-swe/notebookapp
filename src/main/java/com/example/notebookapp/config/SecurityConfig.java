@@ -24,7 +24,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/auth/login",
                                 "/users/register",
-                                "/users/login"
+                                "/users/login", //no longer used
+                                "/users/register-form"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

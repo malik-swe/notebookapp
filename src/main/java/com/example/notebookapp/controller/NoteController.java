@@ -32,12 +32,12 @@ public class NoteController {
     }
 
     @GetMapping("/{id}")
-    public Note get(@PathVariable Long id) {
+    public Note get(@PathVariable("id") Long id) {
         return noteService.getById(id);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
         noteService.delete(id);
         return ResponseEntity.noContent().build();
     }
