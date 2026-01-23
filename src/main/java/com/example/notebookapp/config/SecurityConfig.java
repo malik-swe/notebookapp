@@ -1,6 +1,8 @@
 package com.example.notebookapp.config;
 
+import com.example.notebookapp.security.RateLimitFilter;
 import com.example.notebookapp.security.jwt.JwtAuthFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.*;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.*;
@@ -60,5 +62,15 @@ public class SecurityConfig {
 
         return http.build();
     }
+
+    //=== RATE LIMITATION ===
+//    @Bean
+//    public FilterRegistrationBean<RateLimitFilter> rateLimitFilter(RateLimitFilter filter) {
+//        FilterRegistrationBean<RateLimitFilter> bean = new FilterRegistrationBean<>();
+//        bean.setFilter(filter);
+//        bean.addUrlPatterns("/*");
+//        bean.setOrder(1);
+//        return bean;
+//    }
 
 }
