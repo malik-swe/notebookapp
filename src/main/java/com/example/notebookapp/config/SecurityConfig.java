@@ -20,17 +20,45 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf.disable())
+
+                // === SECURITY HEADERS ===
+                .headers(headers -> headers
+                        .httpStrictTransportSecurity(hsts -> hsts   //HTTPS
+                                .includeSubDomains(true)
+                                .maxAgeInSeconds(31536000)
+                        )
+                        .contentTypeOptions(contentType -> {}) // X-Content-Type-Options: nosniff
+                        .frameOptions(frame -> frame.deny())   // X-Frame-Options: DENY
+                        .referrerPolicy(referrer ->
+                                referrer.policy(
+                                        org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER
+                                )
+                        )
+                        .contentSecurityPolicy(csp ->
+                                csp.policyDirectives(
+                                        "default-src 'self'; " +
+                                                "script-src 'self'; " +
+                                                "style-src 'self'; " +
+                                                "img-src 'self';"
+                                )
+                        )
+                )
+
+                // === AUTHORIZATION ===
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/auth/login",
                                 "/users/register",
-                                "/users/login", //no longer used
+                                "/users/login",
                                 "/users/register-form"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
+
+                // === JWT FILTER ===
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
+
 }
