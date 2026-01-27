@@ -1,5 +1,7 @@
 package com.example.notebookapp.config;
 
+import com.example.notebookapp.security.LoggingAccessDeniedHandler;
+import com.example.notebookapp.security.LoggingAuthEntryPoint;
 import com.example.notebookapp.security.RateLimitFilter;
 import com.example.notebookapp.security.jwt.JwtAuthFilter;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -12,9 +14,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtFilter;
+    private final LoggingAuthEntryPoint authEntryPoint;
+    private final LoggingAccessDeniedHandler accessDeniedHandler;
 
-    public SecurityConfig(JwtAuthFilter jwtFilter) {
+    public SecurityConfig(JwtAuthFilter jwtFilter, LoggingAuthEntryPoint authEntryPoint,
+                          LoggingAccessDeniedHandler accessDeniedHandler) {
         this.jwtFilter = jwtFilter;
+        this.authEntryPoint = authEntryPoint;
+        this.accessDeniedHandler = accessDeniedHandler;
     }
 
     @Bean
@@ -22,6 +29,12 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf.disable())
+
+                // === LOGGING ===
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(authEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
+                )
 
                 // === SECURITY HEADERS ===
                 .headers(headers -> headers
