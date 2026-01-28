@@ -20,7 +20,6 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
@@ -28,14 +27,16 @@ public class SecurityConfig {
                                 "/auth/login",
                                 "/auth/logout",
                                 "/users/register",
-                                "/users/login", //no longer used
+                                "/users/login",
                                 "/users/register-form"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(rateLimitFilter, JwtAuthFilter.class)
+                // anchor both filters relative to a BUILT-IN filter
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
+
 }
