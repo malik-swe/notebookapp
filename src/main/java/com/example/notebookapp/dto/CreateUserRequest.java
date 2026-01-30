@@ -1,5 +1,6 @@
 package com.example.notebookapp.dto;
 
+import com.example.notebookapp.validation.ValidPassword;
 import com.example.notebookapp.validation.ValidUsername;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
@@ -18,7 +19,7 @@ public class CreateUserRequest {
     private String email;
 
     @NotNull
-    @Size(min = 8, max = 255)
+    @ValidPassword
     private String password;
 
     public String getUsername() {
