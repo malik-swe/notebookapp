@@ -4,11 +4,13 @@ import com.example.notebookapp.security.jwt.JwtAuthFilter;
 import com.example.notebookapp.security.logging.SecurityEventLogger;
 import com.example.notebookapp.security.ratelimit.RateLimitFilter;
 import org.springframework.context.annotation.*;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.*;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtFilter;
@@ -34,6 +36,14 @@ public class SecurityConfig {
                                 "/users/login",
                                 "/users/register-form"
                         ).permitAll()
+
+                        // Admin-only endpoints
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+
+                        // User and Admin can access notes
+                        .requestMatchers("/notes/**").hasAnyRole("USER", "ADMIN")
+
+                        // Everything else requires authentication
                         .anyRequest().authenticated()
                 )
                 .headers(headers -> headers
@@ -68,7 +78,6 @@ public class SecurityConfig {
                         )
                 )
 
-                // anchor both filters relative to a BUILT-IN filter
                 .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
 
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
