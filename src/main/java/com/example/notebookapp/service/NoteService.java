@@ -1,5 +1,7 @@
 package com.example.notebookapp.service;
 
+import com.example.notebookapp.exception.ForbiddenException;
+import com.example.notebookapp.exception.ResourceNotFoundException;
 import com.example.notebookapp.model.Note;
 import com.example.notebookapp.model.User;
 import com.example.notebookapp.repository.NoteRepository;
@@ -41,8 +43,17 @@ public class NoteService {
 
     public Note getById(Long id) {
         User user = getCurrentUser();
-        return noteRepository.findByIdAndUserId(id, user.getId())
-                .orElseThrow(() -> new RuntimeException("Note not found"));
+
+        // check if the note exists at all
+        Note note = noteRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Note", id));
+
+        // check if the current user owns it
+        if (!note.getUserId().equals(user.getId())) {
+            throw new ForbiddenException("Note", id);
+        }
+
+        return note;
     }
 
     public void delete(Long id) {
