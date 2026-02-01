@@ -1,14 +1,11 @@
 package com.example.notebookapp.auth;
 
 import com.example.notebookapp.security.token.RefreshTokenService;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,29 +23,31 @@ public class LogoutController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletRequest request) {
-        // Get authenticated user before clearing context
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = null;
-
+    public ResponseEntity<?> logout(Authentication auth, HttpServletResponse response) {
         if (auth != null && auth.isAuthenticated()) {
-            email = auth.getName();
-        }
+            String email = auth.getName();
 
-        // Revoke all refresh tokens for this user
-        if (email != null) {
+            // Revoke all refresh tokens for this user
             refreshTokenService.revokeAllUserTokens(email);
-            log.info("User logged out, tokens revoked: {}", email);
+
+            log.info("User logged out: {}", email);
         }
 
-        // Clear Spring Security context
-        SecurityContextHolder.clearContext();
+        // create new immediately expired cookie
+        Cookie accessTokenCookie = new Cookie("accessToken", "");
+        accessTokenCookie.setHttpOnly(true);
+        accessTokenCookie.setSecure(true);
+        accessTokenCookie.setPath("/");
+        accessTokenCookie.setMaxAge(0); // Expire immediately
+        response.addCookie(accessTokenCookie);
 
-        // Invalidate HTTP session if it exists
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            session.invalidate();
-        }
+        // clear cookies by replacing it with immediately expired cookie
+        Cookie refreshTokenCookie = new Cookie("refreshToken", "");
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setSecure(true);
+        refreshTokenCookie.setPath("/");
+        refreshTokenCookie.setMaxAge(0); // Expire immediately
+        response.addCookie(refreshTokenCookie);
 
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }

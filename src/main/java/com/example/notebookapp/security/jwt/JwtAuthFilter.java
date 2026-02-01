@@ -9,9 +9,9 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.core.annotation.Order;
-import org.springframework.security.web.SecurityFilterChain;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 @Component
 @Order(2)
@@ -32,29 +32,43 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             FilterChain chain
     ) throws ServletException, IOException {
 
-        String header = request.getHeader("Authorization");
+        String token = null;
 
-        if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
+        // try to get token from cookie
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            token = Arrays.stream(cookies)
+                    .filter(cookie -> "accessToken".equals(cookie.getName()))
+                    .map(Cookie::getValue)
+                    .findFirst()
+                    .orElse(null);
+        }
 
-            if (jwtUtil.isValid(token)) {
-                String email = jwtUtil.extractEmail(token);
-
-                var userDetails =
-                        userDetailsService.loadUserByUsername(email);
-
-                var auth = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
-
-                auth.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
-
-                SecurityContextHolder.getContext().setAuthentication(auth);
+        // try authorization header if token is not in cookies
+        if (token == null) {
+            String header = request.getHeader("Authorization");
+            if (header != null && header.startsWith("Bearer ")) {
+                token = header.substring(7);
             }
+        }
+
+        // validate and authenticate
+        if (token != null && jwtUtil.isValid(token)) {
+            String email = jwtUtil.extractEmail(token);
+
+            var userDetails = userDetailsService.loadUserByUsername(email);
+
+            var auth = new UsernamePasswordAuthenticationToken(
+                    userDetails,
+                    null,
+                    userDetails.getAuthorities()
+            );
+
+            auth.setDetails(
+                    new WebAuthenticationDetailsSource().buildDetails(request)
+            );
+
+            SecurityContextHolder.getContext().setAuthentication(auth);
         }
 
         chain.doFilter(request, response);
