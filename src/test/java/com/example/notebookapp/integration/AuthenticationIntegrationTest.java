@@ -19,60 +19,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/*
- * Full authentication-flow integration tests:
- *     register  →  login  →  logout
- *
- * WHY certain things are done the way they are:
- *
- *   • BCryptPasswordEncoder is NEVER declared as a @Bean anywhere in this project.
- *     Both UserService and AuthController do:
- *         private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
- *     If you try to @Autowired it, Spring will crash with
- *     "No qualifying bean of type BCryptPasswordEncoder".
- *     We therefore instantiate it the exact same way here.
- *
- *   • We do NOT use @ActiveProfiles("test").  There are two property files in
- *     src/test/resources: application.properties and application-test.properties.
- *     application.properties already has the correct H2 URL with NON_KEYWORDS=USER.
- *     @ActiveProfiles("test") would load application-test.properties on top and
- *     its datasource.url would override the good one, losing NON_KEYWORDS=USER and
- *     breaking the V4 migration.  Letting application.properties in test/resources
- *     shadow main's version is enough.
- *
- *   • Login is POST /auth/login (AuthController).  There is also POST /users/login
- *     (UserController) but that one returns the User entity and sets no cookies.
- *     We use /auth/login because it is the only endpoint that sets the accessToken
- *     cookie that the JwtAuthFilter needs.
- *
- *   • AuthController login returns exactly:
- *         Map.of("message", "Login successful", "email", user.getEmail())
- *       on success, and
- *         Map.of("error", "Invalid credentials")
- *       on failure (status 401).
- *     Assertions match these exact keys.
- *
- *   • LogoutController returns exactly:
- *         Map.of("message", "Logged out successfully")
- *     and sets both cookies with maxAge = 0.
- *
- *   • UserController.register returns the User entity directly (201).
- *     Jackson serialises it as { "id", "username", "email", "password", "role" }.
- *
- *   • GlobalExceptionHandler.handleValidationError returns ErrorResponse which has
- *     fields: status (int), error (String), message (String), timestamp (Instant).
- *     Validation failure on the password field produces:
- *         message = "password: Password must be at least 12 characters long"
- *
- *   • IllegalArgumentException (thrown by UserService on duplicate email) has no
- *     dedicated @ExceptionHandler.  It falls to the catch-all Exception handler
- *     which returns 500.
- */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
@@ -82,20 +31,17 @@ class AuthenticationIntegrationTest {
     @Autowired private ObjectMapper     objectMapper;
     @Autowired private UserRepository   userRepository;
     @Autowired private RefreshTokenRepository refreshTokenRepository;
-
-    // ── BCryptPasswordEncoder is NOT a bean.  See class-level comment. ──────
+    
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
     @BeforeEach
     void wipe() {
-        // refresh_tokens has FK → users, must go first
+        // refresh_tokens has FK -> users, must go first
         refreshTokenRepository.deleteAll();
         userRepository.deleteAll();
     }
 
-    // ====================================================================
     // REGISTRATION  (POST /users/register)
-    // ====================================================================
 
     @Test
     void register_passwordTooShort_returns400WithErrorResponse() throws Exception {
@@ -108,15 +54,13 @@ class AuthenticationIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isBadRequest())
-                // GlobalExceptionHandler → ErrorResponse fields:
+                // GlobalExceptionHandler -> ErrorResponse fields:
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message").isString());
     }
 
-    // ====================================================================
-    // LOGIN  (POST /auth/login  —  AuthController)
-    // ====================================================================
+    // LOGIN  (POST /auth/login  -  AuthController)
 
     @Test
     void login_correctCredentials_returns200WithCookiesAndMessage() throws Exception {
@@ -161,7 +105,7 @@ class AuthenticationIntegrationTest {
 
     @Test
     void login_unknownEmail_returns401() throws Exception {
-        // no user seeded — email does not exist
+        // no user seeded - email does not exist
         LoginRequest req = new LoginRequest();
         req.setEmail("ghost@test.com");
         req.setPassword("AnyPass12!");
@@ -173,13 +117,11 @@ class AuthenticationIntegrationTest {
                 .andExpect(jsonPath("$.error").value("Invalid credentials"));
     }
 
-    // ====================================================================
-    // LOGOUT  (POST /auth/logout  —  LogoutController)
-    // ====================================================================
+    // LOGOUT  (POST /auth/logout  -  LogoutController)
 
     @Test
     void logout_afterValidLogin_returns200AndExpiresBothCookies() throws Exception {
-        // 1. seed + login
+        // seed + login
         String email = "logout@test.com";
         String pass  = "LogoutP@ss1";
         userRepository.save(new User("logoutuser", email, encoder.encode(pass)));
@@ -196,8 +138,7 @@ class AuthenticationIntegrationTest {
 
         Cookie accessCookie = loginResult.getResponse().getCookie("accessToken");
 
-        // 2. logout — send the cookie so JwtAuthFilter authenticates the request
-        //    and LogoutController can revoke the refresh tokens
+        // logout - send the cookie so JwtAuthFilter authenticates the request and LogoutController can revoke the refresh tokens
         mockMvc.perform(post("/auth/logout")
                         .cookie(accessCookie))
                 .andExpect(status().isOk())

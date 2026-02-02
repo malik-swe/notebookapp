@@ -173,16 +173,16 @@ class SecuredEndpointsIntegrationTest {
         long noteId = objectMapper.readTree(
                 createRes.getResponse().getContentAsString()).get("id").asLong();
 
-        // NoteController.delete → ResponseEntity.noContent() → 204, empty body
+        // NoteController.delete -> ResponseEntity.noContent() -> 204, empty body
         mockMvc.perform(delete("/notes/" + noteId).cookie(cookie))
                 .andExpect(status().isNoContent());
 
-        // confirm gone — ResourceNotFoundException → 404
+        // confirm gone - ResourceNotFoundException -> 404
         mockMvc.perform(get("/notes/" + noteId).cookie(cookie))
                 .andExpect(status().isNotFound());
     }
 
-    // DATA ISOLATION  —  user B cannot read or delete user A's notes
+    // DATA ISOLATION  -  user B cannot read or delete user A's notes
     @Test
     void notes_userB_cannotReadUserANote_returns403() throws Exception {
         Cookie cookieA = loginAndGetCookie(userA.getEmail(), USER_A_PW);
@@ -200,7 +200,7 @@ class SecuredEndpointsIntegrationTest {
         long noteId = objectMapper.readTree(
                 createRes.getResponse().getContentAsString()).get("id").asLong();
 
-        // B tries to read → NoteService throws ForbiddenException → GlobalExceptionHandler:
+        // B tries to read -> NoteService throws ForbiddenException -> GlobalExceptionHandler:
         //   ErrorResponse { status:403, error:"Forbidden",
         //                   message:"You don't have permission to access this resource" }
         mockMvc.perform(get("/notes/" + noteId).cookie(cookieB))
@@ -228,11 +228,11 @@ class SecuredEndpointsIntegrationTest {
         long noteId = objectMapper.readTree(
                 createRes.getResponse().getContentAsString()).get("id").asLong();
 
-        // B tries to delete → NoteService.delete calls getById which throws ForbiddenException
+        // B tries to delete -> NoteService.delete calls getById which throws ForbiddenException
         mockMvc.perform(delete("/notes/" + noteId).cookie(cookieB))
                 .andExpect(status().isForbidden());
 
-        // A can still read it — note was not deleted
+        // A can still read it - note was not deleted
         mockMvc.perform(get("/notes/" + noteId).cookie(cookieA))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Protected"));
@@ -242,18 +242,16 @@ class SecuredEndpointsIntegrationTest {
     void notes_nonExistentId_returns404() throws Exception {
         Cookie cookie = loginAndGetCookie(userA.getEmail(), USER_A_PW);
 
-        // NoteService.getById → noteRepository.findById returns empty
-        //   → ResourceNotFoundException("Note", 999999)
-        //   → GlobalExceptionHandler → ErrorResponse { status:404, error:"Not Found" }
+        // NoteService.getById -> noteRepository.findById returns empty
+        //   -> ResourceNotFoundException("Note", 999999)
+        //   -> GlobalExceptionHandler -> ErrorResponse { status:404, error:"Not Found" }
         mockMvc.perform(get("/notes/999999").cookie(cookie))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"));
     }
 
-    // ================================================================
-    // ROLE-BASED ACCESS  —  /admin endpoints
-    // ================================================================
+    // ROLE-BASED ACCESS  -  /admin endpoints
 
     @Test
     void admin_stats_adminCanAccess() throws Exception {
@@ -271,7 +269,7 @@ class SecuredEndpointsIntegrationTest {
     void admin_stats_regularUserForbidden() throws Exception {
         Cookie cookie = loginAndGetCookie(userA.getEmail(), USER_A_PW);
 
-        // @PreAuthorize("hasRole('ADMIN')") → AccessDeniedException → 403
+        // @PreAuthorize("hasRole('ADMIN')") -> AccessDeniedException -> 403
         mockMvc.perform(get("/admin/stats").cookie(cookie))
                 .andExpect(status().isForbidden());
     }
@@ -280,7 +278,7 @@ class SecuredEndpointsIntegrationTest {
     void admin_users_adminCanAccess() throws Exception {
         Cookie cookie = loginAndGetCookie(admin.getEmail(), ADMIN_PW);
 
-        // AdminController.getAllUsers returns List<User> — we seeded 3
+        // AdminController.getAllUsers returns List<User> - we seeded 3
         mockMvc.perform(get("/admin/users").cookie(cookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(3));
